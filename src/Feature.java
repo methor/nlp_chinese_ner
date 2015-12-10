@@ -6,22 +6,22 @@ import java.util.List;
  */
 public class Feature <E> {
 
-    protected State requiredForwardState;
+    protected State requiredForwardWordState;
     protected State requiredCurrentState;
 
     public Feature(State requiredForwardState, State forwardState) {
-        this.requiredForwardState = requiredForwardState;
+        this.requiredForwardWordState = requiredForwardState;
         this.requiredCurrentState = forwardState;
     }
 
     public int isSatisfied(State currentState, State forwardState) {
-        return requiredForwardState == forwardState && requiredCurrentState == currentState ? 1 : 0;
+        return requiredForwardWordState == forwardState && requiredCurrentState == currentState ? 1 : 0;
     }
 
     @Override
     public boolean equals(Object obj) {
         Feature o = (Feature)obj;
-        return requiredForwardState == o.requiredForwardState &&
+        return requiredForwardWordState == o.requiredForwardWordState &&
                 requiredCurrentState == o.requiredCurrentState;
     }
 
@@ -29,9 +29,10 @@ public class Feature <E> {
         State[] states = State.values();
         List<E> featureList = new ArrayList<>();
 
-        for (int i = 0; i < states.length - 1; i++) {
-            featureList.add((E)new Feature(states[i], states[i+1]));
-            featureList.add((E)new Feature(states[i+1], states[i]));
+        for (State var1 : states) {
+            for (State var2 : states) {
+                featureList.add((E)new Feature(var1, var2));
+            }
         }
 
         return featureList;

@@ -15,16 +15,21 @@ public class WordInfo {
     String word;
     String prev;
     String next;
+    int start;
+    int end;
 
     Map<String, State> mapper;
 
     static String punctuations = ",.:;!?";
 
-    public WordInfo(String word, String prev, String next, Map<String, State> mapper) {
+    public WordInfo(String word, String prev, String next, Map<String, State> mapper,
+                    int start, int end) {
         this.word = word;
         this.prev = prev;
         this.next = next;
         this.mapper = mapper;
+        this.start = start;
+        this.end = end;
     }
 
 
@@ -38,34 +43,41 @@ public class WordInfo {
 
             String var2 = null;
             String var3 = null;
+            int var2Start = -1;
+            int var2End = -1;
             boolean punctuation = false;
             try {
                 while ((lexeme = ikSegmenter.next()) != null) {
                     String var1 = lexeme.getLexemeText();
-                    int var1Pos = lexeme.getBeginPosition();
+                    int var1Start = lexeme.getBeginPosition();
 
-                    if (var1Pos == 0) {
+                    if (var1Start == 0) {
                         var2 = var1;
+                        var2Start = 0;
+                        var2End = lexeme.getEndPosition();
                         continue;
                     }
 
 
-                    if (punctuations.indexOf(s.charAt(var1Pos - 1)) != -1)
+                    if (punctuations.indexOf(s.charAt(var1Start - 1)) != -1)
                         punctuation = true;
                     else
                         punctuation = false;
 
 
                     if (punctuation == false) {
-                        wordInfoList.add(new WordInfo(var2, var3, var1, fold.trainNers));
+                        wordInfoList.add(new WordInfo(var2, var3, var1, fold.trainNers, var2Start, var2End));
                         var3 = var2;
                         var2 = var1;
                     }
                     else {
-                        wordInfoList.add(new WordInfo(var2, var3, null, fold.trainNers));
+                        wordInfoList.add(new WordInfo(var2, var3, null, fold.trainNers, var2Start, var2End));
                         var3 = null;
                         var2 = var1;
                     }
+
+                    var2Start = var1Start;
+                    var2End = lexeme.getEndPosition();
 
 
 

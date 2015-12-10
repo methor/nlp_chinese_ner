@@ -31,11 +31,14 @@ public class Main {
             for (int i = 0; i < 10; i++) {
                 Fold fold = tenFold.folds[i];
 
+                List<Feature> featureList = new ArrayList<>();
+                featureList.addAll(PrevFeature.createFeatures());
+                featureList.addAll(ForwardFeature.createFeatures());
 
-                List<PrevFeature> prevFeatureList = PrevFeature.createFeatures();
-                List<ForwardFeature> forwardFeatureList = ForwardFeature.createFeatures();
+                List<WordInfo> wordInfoList = WordInfo.createFromFold(fold);
 
-                FeatureOnWord featureOnWord = new FeatureOnWord(WordInfo.createFromFold(fold));
+                MemmProbabilities memmProbabilities = new MemmProbabilities(wordInfoList, featureList);
+                memmProbabilities.train(wordInfoList, featureList);
             }
 
 

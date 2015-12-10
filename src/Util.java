@@ -8,6 +8,9 @@ import java.util.Objects;
  * Created by Mio on 2015/12/10.
  */
 public class Util<E> {
+
+    private static boolean breakFromLoop = false;
+
     public static int boolToInt(boolean b) {
         return b == true ? 1 : 0;
     }
@@ -95,5 +98,15 @@ public class Util<E> {
         }
 
         return false;
+    }
+
+    public static void breakFromLoop() {
+        breakFromLoop = true;
+    }
+
+    public static boolean breakHappened() {
+        boolean temp = breakFromLoop;
+        breakFromLoop = false;
+        return temp;
     }
 }
