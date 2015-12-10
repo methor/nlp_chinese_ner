@@ -1,18 +1,17 @@
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Random;
+import org.wltea.analyzer.core.IKSegmenter;
+import org.wltea.analyzer.core.Lexeme;
+
+import java.io.*;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Mio on 2015/12/9.
  */
 public class Main {
+
+    static String punctuations = ",.:;!?";
 
     public static void main(String[] args) {
 
@@ -25,20 +24,64 @@ public class Main {
             while ((line = bufferedReader.readLine()) != null) {
                 lines.add(line);
             }
+
+            TenFold tenFold = new TenFold(lines);
+            tenFold.extractInfo();
+
+            for (int i = 0; i < 10; i++) {
+                Fold fold = tenFold.folds[i];
+
+
+                List<PrevFeature> prevFeatureList = PrevFeature.createFeatures();
+                List<ForwardFeature> forwardFeatureList = ForwardFeature.createFeatures();
+
+                FeatureOnWord featureOnWord = new FeatureOnWord(WordInfo.createFromFold(fold));
+            }
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+    }
+}
+
+class Fold {
+    public List<String> trainData;
+    public List<String> testData;
+    public Map<String, State> trainNers;
+    public Map<String, State> testNers;
+
+    public Fold() {
+        trainData = new ArrayList<>();
+        testData = new ArrayList<>();
+        trainNers = new HashMap<>();
+        testNers = new HashMap<>();
+    }
+
+    public State getTrainState(String s) {
+        if (trainNers.containsKey(s))
+            return trainNers.get(s);
+        else
+            return State.NONE;
+    }
+
+    public State getTestState(String s) {
+        if (testNers.containsKey(s))
+            return testNers.get(s);
+        else
+            return State.NONE;
     }
 }
 
 
 class TenFold {
-    public List<String>[] trainData;
-    public List<String>[] testData;
+
+
+    public Fold[] folds;
 
     public TenFold(List<String> data) {
-        trainData = Util.createArray(ArrayList.class, 10, new Object[0]);
-        testData = Util.createArray(ArrayList.class, 10, new Object[0]);
+        folds = Util.createArray(Fold.class, 10, new Object[0]);
 
         int ceil = (int) Math.ceil(data.size() / 10.0);
         Random random = new Random();
@@ -46,125 +89,56 @@ class TenFold {
         for (String string : data) {
             while (true) {
                 int foldIndex = random.nextInt(10);
-                if (testData[foldIndex].size() < ceil) {
-                    testData[foldIndex].add(string);
+                if (folds[foldIndex].testData.size() < ceil) {
+                    folds[foldIndex].testData.add(string);
                     break;
                 }
             }
         }
 
-        for (int i = 0; i < testData.length; i++) {
-            trainData[i].addAll(Util.collectionMinus(data, testData[i]));
+        for (int i = 0; i < folds.length; i++) {
+            folds[i].trainData.addAll(Util.collectionMinus(data, folds[i].testData));
         }
     }
-}
 
+    public void extractInfo() {
+        for (int i = 0; i < 10; i++) {
+            String regex = "\\{\\{[^}]+:[^}]+\\}\\}";
+            List<String> trainFold = folds[i].trainData;
+            for (int j = 0; j < trainFold.size(); j++) {
+                String s = trainFold.get(j);
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(s);
+                String substitute = new String(s);
+                while (matcher.find()) {
+                    String subString = s.substring(matcher.start(), matcher.end());
+                    String[] tokens = subString.substring(2).split("[:}]");
 
-class PrevWordFeature extends BinaryFeature {
-
-
-    public PrevWordFeature(String word, String prevWord, State state) {
-        super(word, prevWord, state);
-    }
-
-
-    @Override
-    public boolean isSatisfied() {
-        return word.equals(object);
-    }
-}
-
-
-class CurrentWordFeature extends BinaryFeature {
-
-
-    public CurrentWordFeature(String word, String currentWord, State state) {
-        super(word, currentWord, state);
-    }
-
-
-    @Override
-    public boolean isSatisfied() {
-        return word.equals(object);
-    }
-}
-
-class Util<E> {
-    public static int boolToInt(boolean b) {
-        return b == true ? 1 : 0;
-    }
-
-    public static boolean intToBool(int i) {
-        return i == 0 ? false : true;
-    }
-
-    public static int compare(Number n1, Number n2, boolean type) {
-
-        switch (Util.boolToInt(type)) {
-            case 1:
-                return Integer.compare(n1.intValue(), n2.intValue());
-            case 0:
-                return Double.compare(n1.doubleValue(), n2.doubleValue());
-            default:
-                throw new RuntimeException();
-        }
-
-    }
-
-
-    public static <T extends Comparable> int indexWithMax(T[] array) {
-        int index = 0;
-
-        for (int i = 0; i < array.length; i++) {
-            if (array[i].compareTo(array[index]) > 0)
-                index = i;
-
-        }
-
-        return index;
-    }
-
-
-    public static <T extends Object> T[] createArray(Class<T> type, int len, Object... args) {
-
-        T[] result = (T[]) Array.newInstance(type, len);
-
-        Class<?>[] classes = new Class[args.length];
-        for (int i = 0; args != null && i < args.length; i++)
-            classes[i] = args[i].getClass();
-        try {
-            for (int i = 0; i < result.length; i++) {
-                result[i] = type.getConstructor(classes).newInstance(args);
+                    folds[i].trainNers.put(tokens[1], State.fromString(tokens[0]));
+                    substitute = substitute.replaceFirst(regex, tokens[1]);
+                }
+                trainFold.set(j, substitute);
             }
-            return result;
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-            System.exit(-1);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-            System.exit(-1);
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-            System.exit(-1);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
-        return result;
+            List<String> testFold = folds[i].testData;
+            for (int j = 0; j < testFold.size(); j++) {
+                String s = testFold.get(j);
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(s);
+                String substitute = new String(s);
+                while (matcher.find()) {
+                    String subString = s.substring(matcher.start(), matcher.end());
+                    String[] tokens = subString.substring(2).split("[:}]");
 
+                    folds[i].testNers.put(tokens[1], State.fromString(tokens[0]));
+                    substitute = substitute.replaceFirst(regex, tokens[1]);
+                }
+                testFold.set(j, substitute);
+            }
+        }
     }
 
-    public static <E> List<E> collectionMinus(List<E> from, List<E> target) {
-
-        List<E> result = new ArrayList<>();
-        for (E e : from) {
-            if (!target.contains(e))
-                result.add(e);
-        }
-
-        return result;
-    }
 }
+
 
 
 

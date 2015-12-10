@@ -1,4 +1,6 @@
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,6 +27,8 @@ public class MemmProbabilities {
     }
 
     private Map<TriTuple, Double> probabilities = new HashMap<>();
+    List<PrevFeature> prevFeatureList = PrevFeature.createFeatures();
+    List<ForwardFeature> forwardFeatureList = ForwardFeature.createFeatures();
 
 
     public void addProbability(TriTuple triTuple, double pr) {
@@ -33,6 +37,49 @@ public class MemmProbabilities {
 
     public double getProbability(TriTuple triTuple) {
         return probabilities.get(triTuple);
+    }
+
+
+    public MemmProbabilities(List<WordInfo> wordInfoList) {
+        State[] states = State.values();
+        List<Integer> sums = new ArrayList<>();
+        List<Double> prs = new ArrayList<>();
+        List<TriTuple> triTuples = new ArrayList<>();
+
+        for (WordInfo wordInfo : wordInfoList) {
+            for (int i = 0; i < states.length; i++) {
+                State var1 = states[i];
+
+
+                for (int j = 0; j < states.length; j++) {
+                    if (j == i)
+                        continue;
+
+                    State var2 = states[j];
+                    int sum = 0;
+
+
+                    for (PrevFeature prevFeature : prevFeatureList) {
+                        sum += FeatureOnWord.featureOnWord(prevFeature, wordInfo, var2);
+                    }
+                    for (ForwardFeature forwardFeature : forwardFeatureList) {
+                        sum += FeatureOnWord.featureOnWord(forwardFeature, wordInfo, var2);
+                    }
+
+                    sums.add(sum);
+                    triTuples.add(new TriTuple(var2, var1, sum));
+                }
+
+                int sumAll = 0;
+                for (Integer sum : sums) {
+                    sumAll += sum;
+                }
+                for (int k = 0; k < sums.size(); k++)
+                    prs.add((double)sums.get(k) / sumAll);
+
+
+            }
+        }
     }
 
 
