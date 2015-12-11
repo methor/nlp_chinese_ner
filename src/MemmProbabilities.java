@@ -1,3 +1,5 @@
+import sun.plugin.services.WIExplorerBrowserService;
+
 import java.util.*;
 
 /**
@@ -18,7 +20,7 @@ public class MemmProbabilities {
 
         @Override
         public boolean equals(Object obj) {
-            TriTuple o = (TriTuple)obj;
+            TriTuple o = (TriTuple) obj;
             return prev == o.prev && current == o.current && observation.equals(o.observation);
         }
     }
@@ -114,7 +116,7 @@ public class MemmProbabilities {
     public Map<String, State> test(String line) {
 
         Map<String, State> map = new HashMap<>();
-        List<WordInfo> wordInfoList;
+        List<WordInfo> wordInfoList = WordInfo.createFromeLine(line);
         State var2 = State.NONE;
         int var2Start = -1;
         int var2End = -1;
@@ -133,26 +135,23 @@ public class MemmProbabilities {
                 var2 = var1;
                 if (wordInfoList.indexOf(wordInfo) == wordInfoList.size() - 1)
                     map.put(line.substring(var2Start, var2End), var2);
-            }
-            else if (var2 == State.NONE && var1 == var2) {
+            } else if (var2 == State.NONE && var1 == var2) {
                 var2Start = -1;
                 var2End = -1;
                 continue;
-            }
-            else if (var2 != State.NONE && var1 != var2) {
+            } else if (var2 != State.NONE && var1 != var2) {
                 map.put(line.substring(var2Start, var2End), var2);
                 var2 = var1;
                 var2Start = wordInfo.start;
                 var2End = wordInfo.end;
-            }
-            else {
+            } else {
                 var2End = wordInfo.end;
                 if (wordInfoList.indexOf(wordInfo) == wordInfoList.size() - 1)
                     map.put(line.substring(var2Start, var2End), var2);
             }
         }
 
-
+        return map;
     }
 
 
